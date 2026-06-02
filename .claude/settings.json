@@ -4,7 +4,11 @@
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\proxy.js\" -NewName \"middleware.js\")",
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\app\\\\loguin\" -NewName \"login\")",
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\" -NewName \"proxy.js\")",
-      "Bash(Remove-Item \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\")"
+      "Bash(Remove-Item \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\")",
+      "Bash(mkdir -p \"c:/Users/alejo/OneDrive/Documentos/Codigos/Divvy/frontend/src/app/dashboard/grupos/[id]\")"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\alejo\\OneDrive\\Documentos\\Codigos\\Divvy\\frontend\\src\\app\\dashboard\\grupos"
     ]
   }
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import CreateGroupModal from './CreateGroupModal'
 
 export default function DashboardClient({ username }) {
@@ -67,15 +68,16 @@ export default function DashboardClient({ username }) {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {groups.map(group => (
-              <div
+              <Link
                 key={group.id}
-                className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-md transition cursor-pointer"
+                href={`/dashboard/grupos/${group.id}`}
+                className="bg-white rounded-2xl border border-gray-200 p-5 hover:shadow-md transition block"
               >
                 <h3 className="font-semibold text-gray-900 text-lg mb-1">{group.name}</h3>
                 {group.description && (
                   <p className="text-gray-500 text-sm">{group.description}</p>
                 )}
-              </div>
+              </Link>
             ))}
           </div>
         )}
