@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -19,28 +19,13 @@ export default function RegisterPage() {
     setLoading(true)
     setError(null)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     })
 
     if (signUpError) {
       setError(signUpError.message)
-      setLoading(false)
-      return
-    }
-
-    // Crear el perfil en public.user
-    const { error: profileError } = await supabase
-      .from('user')
-      .insert({
-        id: data.user.id,
-        username,
-        email,
-      })
-
-    if (profileError) {
-      setError(profileError.message)
       setLoading(false)
       return
     }
