@@ -3,7 +3,8 @@
     "allow": [
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\proxy.js\" -NewName \"middleware.js\")",
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\app\\\\loguin\" -NewName \"login\")",
-      "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\" -NewName \"proxy.js\")"
+      "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\" -NewName \"proxy.js\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\")"
     ]
   }
 }
