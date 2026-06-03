@@ -1,36 +1,26 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { register } from '../login/actions'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+export default function RegisterPage() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
 
-  async function handleLogin(e) {
+  async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
     setError(null)
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (error) {
-      setError(error.message)
+    const result = await register(new FormData(e.target))
+    if (result?.error) {
+      setError(result.error)
       setLoading(false)
-      return
+    } else {
+      router.push('/dashboard')
     }
-
-    router.push('/dashboard')
-    router.refresh()
   }
 
   return (
@@ -38,19 +28,27 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Divvy</h1>
-          <p className="text-gray-400 mt-2">Inicia sesión en tu cuenta</p>
+          <p className="text-gray-400 mt-2">Crea tu cuenta</p>
         </div>
 
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Nombre de usuario</label>
+              <input
+                type="text"
+                name="username"
+                required
+                className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition"
+                placeholder="alejandro2005"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Email</label>
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                name="email"
                 required
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition"
                 placeholder="tu@email.com"
@@ -58,14 +56,12 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Contraseña
-              </label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Contraseña</label>
               <input
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                name="password"
                 required
+                minLength={6}
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500 transition"
                 placeholder="••••••••"
               />
@@ -82,14 +78,14 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 disabled:cursor-not-allowed text-white font-medium rounded-xl transition"
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {loading ? 'Creando cuenta...' : 'Crear cuenta'}
             </button>
           </form>
 
           <p className="text-center text-gray-500 text-sm mt-6">
-            ¿No tienes cuenta?{' '}
-            <Link href="/register" className="text-indigo-400 hover:text-indigo-300">
-              Regístrate
+            ¿Ya tienes cuenta?{' '}
+            <Link href="/login" className="text-indigo-400 hover:text-indigo-300">
+              Inicia sesión
             </Link>
           </p>
         </div>

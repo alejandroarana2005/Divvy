@@ -5,7 +5,15 @@
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\app\\\\loguin\" -NewName \"login\")",
       "PowerShell(Rename-Item -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\" -NewName \"proxy.js\")",
       "Bash(Remove-Item \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\frontend\\\\src\\\\middleware.js\")",
-      "Bash(mkdir -p \"c:/Users/alejo/OneDrive/Documentos/Codigos/Divvy/frontend/src/app/dashboard/grupos/[id]\")"
+      "Bash(mkdir -p \"c:/Users/alejo/OneDrive/Documentos/Codigos/Divvy/frontend/src/app/dashboard/grupos/[id]\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\" -Recurse)",
+      "Bash(Select-Object FullName)",
+      "Bash(Select-Object -First 200)",
+      "Bash(grep -v '^$')",
+      "Bash(git mv *)",
+      "Bash(Rename-Item -Path \"frontend\" -NewName \"web\")",
+      "Bash(Test-Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\web\\\\.env.local\")",
+      "Bash(Get-Content \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\web\\\\.env.local\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\alejo\\OneDrive\\Documentos\\Codigos\\Divvy\\frontend\\src\\app\\dashboard\\grupos"
