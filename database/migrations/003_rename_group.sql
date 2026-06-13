@@ -1,1 +1,0 @@
-alter table public."group" rename to expense_group;

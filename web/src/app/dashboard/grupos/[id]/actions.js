@@ -1,43 +1,209 @@
 'use server'
 
-// ─────────────────────────────────────────────────────────────────────────────
-// grupos/[id]/actions.js — Server Action para crear gastos
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
-import pool from '@/lib/db'
-import { getSessionUserId } from '@/lib/auth'
+import { getSessionUser } from '@/lib/auth'
+import db from '@/lib/db'
+
+// ── Gastos ────────────────────────────────────────────────────────────────────
 
 export async function createExpense({ groupId, name, category, amount, paidById, participantIds }) {
-  const userId = await getSessionUserId()
-  if (!userId) throw new Error('No autenticado')
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
 
-  const expenseId = randomUUID()
-
-  // toISOString() da "2025-03-15T10:30:00.000Z", slice(0,10) extrae "2025-03-15"
   const today = new Date().toISOString().slice(0, 10)
-
-  // Calculamos cuánto le corresponde a cada participante.
-  // toFixed(2) redondea a 2 decimales (ej: 33.33), parseFloat quita zeros innecesarios.
   const share = parseFloat((amount / participantIds.length).toFixed(2))
 
-  // Insertamos el gasto principal en la tabla expenses
-  await pool.execute(
-    'INSERT INTO expenses (id, group_id, name, category, amount, paid_by, expense_date) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [expenseId, groupId, name, category, amount, paidById, today]
-  )
+  const { data: expense, error } = await db
+    .from('expenses')
+    .insert({ group_id: groupId, name, category, amount, paid_by: paidById, expense_date: today })
+    .select('id')
+    .single()
 
-  // Por cada participante, insertamos una fila en expense_participants.
-  // Este es un patrón de "tabla de relación muchos a muchos":
-  // un gasto puede tener muchos participantes, y un usuario puede estar en muchos gastos.
-  for (const uid of participantIds) {
-    await pool.execute(
-      'INSERT INTO expense_participants (id, expense_id, user_id, share) VALUES (?, ?, ?, ?)',
-      [randomUUID(), expenseId, uid, share]
-    )
+  if (error) throw new Error(error.message)
+
+  const { error: partError } = await db
+    .from('expense_participants')
+    .insert(participantIds.map(uid => ({ expense_id: expense.id, user_id: uid, share })))
+
+  if (partError) throw new Error(partError.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+}
+
+export async function updateExpense({ expenseId, groupId, name, category, amount, paidById, participantIds }) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership) throw new Error('No eres miembro de este grupo')
+
+  const share = parseFloat((amount / participantIds.length).toFixed(2))
+
+  const { error } = await db
+    .from('expenses')
+    .update({ name, category, amount, paid_by: paidById })
+    .eq('id', expenseId)
+
+  if (error) throw new Error(error.message)
+
+  // Reemplazamos todos los participantes
+  await db.from('expense_participants').delete().eq('expense_id', expenseId)
+
+  const { error: partError } = await db
+    .from('expense_participants')
+    .insert(participantIds.map(uid => ({ expense_id: expenseId, user_id: uid, share })))
+
+  if (partError) throw new Error(partError.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+}
+
+export async function deleteExpense(expenseId, groupId) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership) throw new Error('No eres miembro de este grupo')
+
+  // expense_participants se elimina en cascada por la FK
+  const { error } = await db.from('expenses').delete().eq('id', expenseId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+}
+
+// ── Pagos ─────────────────────────────────────────────────────────────────────
+
+export async function registerSettlement({ groupId, paidById, paidToId, amount, note }) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership) throw new Error('No eres miembro de este grupo')
+  if (paidById === paidToId) throw new Error('El pagador y el receptor no pueden ser la misma persona')
+
+  const { data: settlement, error } = await db
+    .from('settlements')
+    .insert({ group_id: groupId, paid_by_id: paidById, paid_to_id: paidToId, amount, note: note || null })
+    .select('id, paid_by_id, paid_to_id, amount, note, settled_at')
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+  return { success: true, settlement }
+}
+
+export async function deleteSettlement(settlementId, groupId) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership) throw new Error('No eres miembro de este grupo')
+
+  const { error } = await db.from('settlements').delete().eq('id', settlementId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+}
+
+// ── Miembros ──────────────────────────────────────────────────────────────────
+
+export async function inviteMember(groupId, email) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership) throw new Error('No eres miembro de este grupo')
+
+  const { data: profile } = await db
+    .from('profiles').select('id, username, email')
+    .eq('email', email).maybeSingle()
+
+  if (!profile) return { error: 'No existe ninguna cuenta con ese email' }
+
+  const { data: existing } = await db
+    .from('group_members').select('id')
+    .eq('group_id', groupId).eq('user_id', profile.id).maybeSingle()
+
+  if (existing) return { error: 'Este usuario ya es miembro del grupo' }
+
+  const { error } = await db
+    .from('group_members')
+    .insert({ group_id: groupId, user_id: profile.id, role: 'member' })
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+  return {
+    success: true,
+    member: { id: profile.id, username: profile.username, email: profile.email, role: 'member', joined_at: new Date().toISOString() },
+  }
+}
+
+export async function removeMember(groupId, userId) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership || membership.role !== 'admin') throw new Error('Solo un admin puede eliminar miembros')
+  if (userId === user.id) return { error: 'No puedes eliminarte a ti mismo. Usa "Salir del grupo".' }
+
+  const { error } = await db
+    .from('group_members').delete()
+    .eq('group_id', groupId).eq('user_id', userId)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/dashboard/grupos/${groupId}`)
+  return { success: true }
+}
+
+export async function leaveGroup(groupId) {
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: membership } = await db
+    .from('group_members').select('role')
+    .eq('group_id', groupId).eq('user_id', user.id).single()
+
+  if (!membership) throw new Error('No eres miembro de este grupo')
+
+  // Si eres el único admin, no puedes salir
+  if (membership.role === 'admin') {
+    const { data: otherAdmins } = await db
+      .from('group_members').select('id')
+      .eq('group_id', groupId).eq('role', 'admin').neq('user_id', user.id)
+
+    if (!otherAdmins || otherAdmins.length === 0) {
+      return { error: 'Eres el único admin del grupo. Asigna otro admin antes de salir.' }
+    }
   }
 
-  // Invalidamos la caché de la página del grupo para que los datos sean frescos
-  revalidatePath(`/dashboard/grupos/${groupId}`)
+  const { error } = await db
+    .from('group_members').delete()
+    .eq('group_id', groupId).eq('user_id', user.id)
+
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/dashboard')
+  return { success: true }
 }

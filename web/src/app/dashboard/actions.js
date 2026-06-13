@@ -1,39 +1,27 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// dashboard/actions.js — Server Actions del dashboard
-// ─────────────────────────────────────────────────────────────────────────────
 'use server'
 
-import { randomUUID } from 'crypto'
 import { revalidatePath } from 'next/cache'
-import pool from '@/lib/db'
-import { getSessionUserId } from '@/lib/auth'
+import { getSessionUser } from '@/lib/auth'
+import db from '@/lib/db'
 
 export async function createGroup({ name, description }) {
-  // Verificamos la sesión en el servidor — nunca confiamos en datos del cliente
-  const userId = await getSessionUserId()
-  if (!userId) throw new Error('No autenticado')
+  const user = await getSessionUser()
+  if (!user) throw new Error('No autenticado')
 
-  // Generamos IDs únicos para el nuevo grupo y para la fila de membresía
-  const groupId  = randomUUID()
-  const memberId = randomUUID()
+  const { data: group, error } = await db
+    .from('expense_groups')
+    .insert({ name, description: description || null, created_by: user.id })
+    .select('id, name, description')
+    .single()
 
-  // Insertamos el grupo. created_by guarda quién lo creó para auditoría.
-  await pool.execute(
-    'INSERT INTO expense_groups (id, name, description, created_by) VALUES (?, ?, ?, ?)',
-    [groupId, name, description || null, userId]
-  )
+  if (error) throw new Error(error.message)
 
-  // El creador del grupo automáticamente se convierte en miembro con rol 'admin'
-  await pool.execute(
-    'INSERT INTO group_members (id, group_id, user_id, role) VALUES (?, ?, ?, ?)',
-    [memberId, groupId, userId, 'admin']
-  )
+  const { error: memberError } = await db
+    .from('group_members')
+    .insert({ group_id: group.id, user_id: user.id, role: 'admin' })
 
-  // revalidatePath le dice a Next.js que la caché de /dashboard está desactualizada
-  // y que debe regenerar la página la próxima vez que alguien la visite.
+  if (memberError) throw new Error(memberError.message)
+
   revalidatePath('/dashboard')
-
-  // Retornamos el grupo creado para que el cliente lo agregue al estado local
-  // (así no necesitamos recargar toda la página)
-  return { id: groupId, name, description: description || '' }
+  return { id: group.id, name: group.name, description: group.description ?? '' }
 }

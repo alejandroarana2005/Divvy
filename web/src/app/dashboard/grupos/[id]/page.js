@@ -1,83 +1,114 @@
 import { redirect, notFound } from 'next/navigation'
-import { getSessionUserId } from '@/lib/auth'
-import pool from '@/lib/db'
+import { getSessionUser } from '@/lib/auth'
+import db from '@/lib/db'
 import GroupDetailClient from './GroupDetailClient'
 
 export default async function GroupPage({ params }) {
   const { id } = await params
-  const userId = await getSessionUserId()
-  if (!userId) redirect('/login')
+  const user = await getSessionUser()
+  if (!user) redirect('/login')
 
-  const [[group]] = await pool.execute(
-    `SELECT eg.id, eg.name, eg.description
-     FROM expense_groups eg
-     INNER JOIN group_members gm ON gm.group_id = eg.id
-     WHERE eg.id = ? AND gm.user_id = ?`,
-    [id, userId]
-  )
-  if (!group) notFound()
+  const { data: membership } = await db
+    .from('group_members')
+    .select('expense_groups(id, name, description)')
+    .eq('group_id', id)
+    .eq('user_id', user.id)
+    .single()
 
-  const [members] = await pool.execute(
-    `SELECT u.id, u.username, u.email, gm.role, gm.joined_at
-     FROM group_members gm
-     INNER JOIN users u ON u.id = gm.user_id
-     WHERE gm.group_id = ?
-     ORDER BY gm.joined_at ASC`,
-    [id]
-  )
+  if (!membership) notFound()
+  const group = membership.expense_groups
 
-  const [expenses] = await pool.execute(
-    `SELECT e.id, e.name, e.category, e.amount, e.expense_date,
-            u.id AS paid_by_id, u.username AS paid_by_name
-     FROM expenses e
-     INNER JOIN users u ON u.id = e.paid_by
-     WHERE e.group_id = ?
-     ORDER BY e.expense_date DESC, e.created_at DESC`,
-    [id]
-  )
+  const { data: membersData } = await db
+    .from('group_members')
+    .select('user_id, role, joined_at, profiles(id, username, email)')
+    .eq('group_id', id)
+    .order('joined_at', { ascending: true })
 
-  const [participantRows] = await pool.execute(
-    `SELECT ep.expense_id, u.id AS user_id, u.username
-     FROM expense_participants ep
-     INNER JOIN users u ON u.id = ep.user_id
-     WHERE ep.expense_id IN (
-       SELECT id FROM expenses WHERE group_id = ?
-     )`,
-    [id]
-  )
+  const members = (membersData ?? []).map(m => ({
+    id: m.profiles.id,
+    username: m.profiles.username,
+    email: m.profiles.email,
+    role: m.role,
+    joined_at: m.joined_at,
+  }))
+
+  const { data: expensesData } = await db
+    .from('expenses')
+    .select('id, name, category, amount, expense_date, paid_by, profiles(username)')
+    .eq('group_id', id)
+    .order('expense_date', { ascending: false })
+
+  const expenseIds = (expensesData ?? []).map(e => e.id)
+  let participantRows = []
+  if (expenseIds.length > 0) {
+    const { data } = await db
+      .from('expense_participants')
+      .select('expense_id, user_id, profiles(username)')
+      .in('expense_id', expenseIds)
+    participantRows = data ?? []
+  }
 
   const participantsByExpense = {}
   for (const row of participantRows) {
     if (!participantsByExpense[row.expense_id]) participantsByExpense[row.expense_id] = []
-    participantsByExpense[row.expense_id].push({ id: row.user_id, username: row.username })
+    participantsByExpense[row.expense_id].push({ id: row.user_id, username: row.profiles?.username ?? '' })
   }
 
-  const expensesWithParticipants = expenses.map(e => ({
-    ...e,
+  const expenses = (expensesData ?? []).map(e => ({
+    id: e.id,
+    name: e.name,
+    category: e.category,
     amount: parseFloat(e.amount),
+    expense_date: e.expense_date,
+    paid_by_id: e.paid_by,
+    paid_by_name: e.profiles?.username ?? '',
     participants: participantsByExpense[e.id] ?? [],
   }))
 
-  const balances = computeBalances(members, expensesWithParticipants)
+  // paid_by_id y paid_to_id apuntan a la misma tabla (profiles), por eso
+  // usamos alias con el hint de columna: profiles!paid_by_id y profiles!paid_to_id
+  const { data: settlementsData } = await db
+    .from('settlements')
+    .select('id, paid_by_id, paid_to_id, amount, note, settled_at, payer:profiles!paid_by_id(username), receiver:profiles!paid_to_id(username)')
+    .eq('group_id', id)
+    .order('settled_at', { ascending: false })
+
+  const settlements = (settlementsData ?? []).map(s => ({
+    id: s.id,
+    paid_by_id: s.paid_by_id,
+    paid_to_id: s.paid_to_id,
+    paid_by_name: s.payer?.username ?? '',
+    paid_to_name: s.receiver?.username ?? '',
+    amount: parseFloat(s.amount),
+    note: s.note,
+    settled_at: s.settled_at,
+  }))
+
+  const balances = computeBalances(members, expenses, settlements)
 
   return (
     <GroupDetailClient
       group={group}
       members={members}
-      initialExpenses={expensesWithParticipants}
+      initialExpenses={expenses}
+      initialSettlements={settlements}
       initialBalances={balances}
-      currentUserId={userId}
+      currentUserId={user.id}
     />
   )
 }
 
-function computeBalances(members, expenses) {
-  const paid = {}
-  const owed = {}
+function computeBalances(members, expenses, settlements = []) {
+  const paid       = {}
+  const owed       = {}
+  const settledOut = {}
+  const settledIn  = {}
+
   for (const m of members) {
-    paid[m.id] = 0
-    owed[m.id] = 0
+    paid[m.id] = 0; owed[m.id] = 0
+    settledOut[m.id] = 0; settledIn[m.id] = 0
   }
+
   for (const exp of expenses) {
     paid[exp.paid_by_id] = (paid[exp.paid_by_id] ?? 0) + exp.amount
     const share = exp.amount / (exp.participants.length || 1)
@@ -85,9 +116,17 @@ function computeBalances(members, expenses) {
       owed[p.id] = (owed[p.id] ?? 0) + share
     }
   }
+
+  for (const s of settlements) {
+    settledOut[s.paid_by_id] = (settledOut[s.paid_by_id] ?? 0) + s.amount
+    settledIn[s.paid_to_id]  = (settledIn[s.paid_to_id]  ?? 0) + s.amount
+  }
+
   return members.map(m => ({
     id: m.id,
     username: m.username,
-    balance: Math.round((paid[m.id] ?? 0) - (owed[m.id] ?? 0)),
+    balance: Math.round(
+      (paid[m.id] ?? 0) - (owed[m.id] ?? 0) + (settledOut[m.id] ?? 0) - (settledIn[m.id] ?? 0)
+    ),
   }))
 }
