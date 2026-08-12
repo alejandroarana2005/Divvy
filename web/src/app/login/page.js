@@ -10,7 +10,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { login } from './actions' // importamos el Server Action
+import { login } from '@/features/auth/actions'
 
 export default function LoginPage() {
   // useState guarda valores que, al cambiar, hacen que React vuelva a renderizar

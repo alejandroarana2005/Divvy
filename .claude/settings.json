@@ -13,10 +13,14 @@
       "Bash(git mv *)",
       "Bash(Rename-Item -Path \"frontend\" -NewName \"web\")",
       "Bash(Test-Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\web\\\\.env.local\")",
-      "Bash(Get-Content \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\web\\\\.env.local\")"
+      "Bash(Get-Content \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\web\\\\.env.local\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\" -Force)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\alejo\\\\OneDrive\\\\Documentos\\\\Codigos\\\\Divvy\\\\web\\\\src\\\\middleware.js\")",
+      "Bash(npm uninstall *)"
     ],
     "additionalDirectories": [
-      "c:\\Users\\alejo\\OneDrive\\Documentos\\Codigos\\Divvy\\frontend\\src\\app\\dashboard\\grupos"
+      "c:\\Users\\alejo\\OneDrive\\Documentos\\Codigos\\Divvy\\frontend\\src\\app\\dashboard\\grupos",
+      "c:\\Users\\alejo\\.claude\\projects\\c--Users-alejo-OneDrive-Documentos-Codigos-Divvy\\memory"
     ]
   }
 }

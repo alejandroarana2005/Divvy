@@ -1,8 +1,8 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getSessionUser } from '@/lib/auth'
-import db from '@/lib/db'
+import { getSessionUser } from '@/shared/lib/auth'
+import db from '@/shared/lib/db'
 
 // ── Gastos ────────────────────────────────────────────────────────────────────
 

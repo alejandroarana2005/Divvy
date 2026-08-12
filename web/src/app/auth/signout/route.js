@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/shared/lib/auth'
 
 export async function POST() {
   const supabase = await createClient()

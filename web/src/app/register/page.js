@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { register } from '../login/actions'
+import { register } from '@/features/auth/actions'
 
 export default function RegisterPage() {
   const [error, setError] = useState(null)

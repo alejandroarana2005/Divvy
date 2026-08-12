@@ -12,7 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState } from 'react'
-import { createGroup } from './actions' // Server Action
+import { createGroup } from '../actions' // Server Action
 
 export default function CreateGroupModal({ onClose, onGroupCreated }) {
 

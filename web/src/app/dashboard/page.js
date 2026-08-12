@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
-import { getSessionUser } from '@/lib/auth'
-import db from '@/lib/db'
-import DashboardClient from './DashboardClient'
+import { getSessionUser } from '@/shared/lib/auth'
+import db from '@/shared/lib/db'
+import DashboardClient from '@/features/groups/components/DashboardClient'
 
 export default async function DashboardPage() {
   const user = await getSessionUser()

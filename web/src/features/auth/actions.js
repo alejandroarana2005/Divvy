@@ -1,7 +1,7 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
-import db from '@/lib/db'
+import { createClient } from '@/shared/lib/auth'
+import db from '@/shared/lib/db'
 
 export async function login(formData) {
   const email    = formData.get('email')

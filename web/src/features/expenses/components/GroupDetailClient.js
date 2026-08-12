@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import AddExpenseModal from './AddExpenseModal'
 import EditExpenseModal from './EditExpenseModal'
-import { inviteMember, registerSettlement, deleteExpense, deleteSettlement, leaveGroup, removeMember } from './actions'
+import { inviteMember, registerSettlement, deleteExpense, deleteSettlement, leaveGroup, removeMember } from '../actions'
 
 const FILTER_CATEGORIES = ['Todos', 'Comida', 'Transporte', 'Servicios', 'Arriendo', 'Entretenimiento', 'Salud', 'Educación', 'Otro']
 

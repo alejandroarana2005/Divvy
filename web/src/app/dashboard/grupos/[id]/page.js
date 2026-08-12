@@ -1,7 +1,7 @@
 import { redirect, notFound } from 'next/navigation'
-import { getSessionUser } from '@/lib/auth'
-import db from '@/lib/db'
-import GroupDetailClient from './GroupDetailClient'
+import { getSessionUser } from '@/shared/lib/auth'
+import db from '@/shared/lib/db'
+import GroupDetailClient from '@/features/expenses/components/GroupDetailClient'
 
 export default async function GroupPage({ params }) {
   const { id } = await params
